@@ -22,9 +22,9 @@ npm install -g newman
 
 ```bash
 newman run postman/kiwisaver-fee-calc.postman_collection.json \
-   --environment '{"variables": [{"key": "baseUrl", "value": "http://localhost:8081"}]}' \
-   --reporters cli,json \
-   --reporter-json-export=newman-results.json
+    --env-var baseUrl=http://localhost:8081 \
+    --reporters cli,json \
+    --reporter-json-export=newman-results.json
 ```
 
 ## Viewing results

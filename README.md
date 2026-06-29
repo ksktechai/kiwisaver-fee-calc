@@ -82,8 +82,8 @@ A Postman collection is provided at `postman/kiwisaver-fee-calc.postman_collecti
 ```bash
 npm install -g newman
 newman run postman/kiwisaver-fee-calc.postman_collection.json \
-    --environment '{"variables": [{"key": "baseUrl", "value": "http://localhost:8081"}]}' \
-    --reporters cli,json
+     --env-var baseUrl=http://localhost:8081 \
+     --reporters cli,json
 ```
 
 See `postman/README.md` for full instructions.
