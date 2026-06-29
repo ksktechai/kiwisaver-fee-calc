@@ -13,6 +13,7 @@ import java.math.RoundingMode;
 public class FeeCalculatorService {
 
     private static final int SCALE = 2;
+    private static final int RATE_SCALE = 6;
     private static final RoundingMode RM = RoundingMode.HALF_UP;
 
     public CalculateResponse calculate(Fund fund, double balance, double annualContribution,
@@ -20,26 +21,26 @@ public class FeeCalculatorService {
         BigDecimal currentBalance = BigDecimal.valueOf(balance);
         BigDecimal contribution = BigDecimal.valueOf(annualContribution);
         BigDecimal returnRate = BigDecimal.valueOf(annualReturnPercent)
-                .divide(BigDecimal.valueOf(100), SCALE, RM);
+                 .divide(BigDecimal.valueOf(100), RATE_SCALE, RM);
         BigDecimal feeRate = fund.annualFeePercent()
-                 .divide(BigDecimal.valueOf(100), SCALE, RM);
+                  .divide(BigDecimal.valueOf(100), RATE_SCALE, RM);
         BigDecimal cumulativeFees = BigDecimal.ZERO;
 
         for (int i = 0; i < years; i++) {
-            // Add contribution at start of year
+             // Add contribution at start of year
             currentBalance = currentBalance.add(contribution);
 
-            // Apply growth return
+             // Apply growth return
             BigDecimal returnAmount = currentBalance.multiply(returnRate).setScale(SCALE, RM);
             currentBalance = currentBalance.add(returnAmount);
 
-            // Deduct annual fee
+             // Deduct annual fee
             BigDecimal fee = currentBalance.multiply(feeRate).setScale(SCALE, RM);
             cumulativeFees = cumulativeFees.add(fee);
             currentBalance = currentBalance.subtract(fee);
-        }
+         }
 
-        // Compute zero-fee balance: run same simulation without fee deduction
+         // Compute zero-fee balance: run same simulation without fee deduction
         BigDecimal balanceWithoutFees = BigDecimal.valueOf(balance);
         BigDecimal zeroFeeCumulativeFees = BigDecimal.ZERO; // not used but tracks what would have been fees
 
@@ -47,16 +48,16 @@ public class FeeCalculatorService {
             balanceWithoutFees = balanceWithoutFees.add(contribution);
             BigDecimal returnAmount = balanceWithoutFees.multiply(returnRate).setScale(SCALE, RM);
             balanceWithoutFees = balanceWithoutFees.add(returnAmount);
-            // No fee deduction here
-        }
+             // No fee deduction here
+         }
 
         return new CalculateResponse(
                 fund.name(),
                 currentBalance.setScale(SCALE, RM),
                 cumulativeFees.setScale(SCALE, RM),
                 balanceWithoutFees.setScale(SCALE, RM)
-        );
-    }
+         );
+     }
 
     @Produces
     @jakarta.enterprise.context.Dependent

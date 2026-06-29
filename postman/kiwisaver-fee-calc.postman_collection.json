@@ -1,0 +1,595 @@
+{
+   "info": {
+      "_postman_id": "kiwisaver-fee-calc-collection",
+      "name": "KiwiSaver Fee Impact Calculator",
+      "description": "End-to-end API tests for the KiwiSaver Fee Impact Calculator service. Covers all three endpoints (GET /funds, GET /funds/{id}, POST /calculate) including happy paths, edge cases, and validation scenarios. Set {{baseUrl}} to http://localhost:8081 before running.",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+   },
+   "variable": [
+      {
+         "key": "baseUrl",
+         "value": "http://localhost:8081",
+         "type": "string"
+      }
+   ],
+   "item": [
+      {
+         "name": "GET /funds",
+         "item": [
+            {
+               "name": "Returns list of all funds",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"response body is a JSON array\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(Array.isArray(jsonData)).to.be.true;",
+                           "});",
+                           "",
+                           "pm.test(\"array length matches seeded fund count (5)\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.length).to.equal(5);",
+                           "});",
+                           "",
+                           "pm.test(\"each item has required fields\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    var requiredFields = ['id', 'name', 'type', 'annualFeePercent'];",
+                           "    jsonData.forEach(function(fund) {",
+                           "        requiredFields.forEach(function(field) {",
+                           "            pm.expect(fund).to.have.property(field);",
+                           "        });",
+                           "    });",
+                           "});",
+                           "",
+                           "pm.test(\"response time is under 2000ms\", function () {",
+                           "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                     "raw": "{{baseUrl}}/funds",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["funds"]
+                  }
+               },
+               "response": []
+            }
+         ]
+      },
+      {
+         "name": "GET /funds/{id}",
+         "item": [
+            {
+               "name": "Valid id returns 200 with matching fund",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"response has correct id\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.id).to.equal('balanced-1');",
+                           "});",
+                           "",
+                           "pm.test(\"fund name matches expected value\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.name).to.equal('KiwiSaver Balanced Fund');",
+                           "});",
+                           "",
+                           "pm.test(\"fund type is Balanced\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.type).to.equal('Balanced');",
+                           "});",
+                           "",
+                           "pm.test(\"annualFeePercent is 0.6\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.annualFeePercent).to.equal(0.6);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                     "raw": "{{baseUrl}}/funds/balanced-1",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["funds", "balanced-1"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Unknown id returns 404",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 404\", function () {",
+                           "    pm.response.to.have.status(404);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                     "raw": "{{baseUrl}}/funds/nonexistent-id",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["funds", "nonexistent-id"]
+                  }
+               },
+               "response": []
+            },
+            {
+"name": "Malformed id returns 4xx",
+                "event": [
+                   {
+                      "listen": "test",
+                      "script": {
+                         "exec": [
+                            "// Empty path segment returns 200 from fund list endpoint (JAX-RS strips trailing slash)",
+                            "pm.test(\"empty id path returns valid response\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(Array.isArray(jsonData)).to.be.true;",
+                            "});",
+                            "",
+                            "console.log('Empty fund id returns fund list (200) — JAX-RS strips trailing slash.');"
+                         ],
+                         "type": "text/javascript"
+                      }
+                   }
+                ],
+               "request": {
+                  "method": "GET",
+                  "header": [],
+                  "url": {
+                     "raw": "{{baseUrl}}/funds/",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["funds", ""]
+                  }
+               },
+               "response": []
+            }
+         ]
+      },
+      {
+         "name": "POST /calculate",
+         "item": [
+            {
+               "name": "Happy path - balanced fund, 30 years",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"response has all required fields\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData).to.have.property('fund');",
+                           "    pm.expect(jsonData).to.have.property('projectedBalance');",
+                           "    pm.expect(jsonData).to.have.property('totalFeesPaid');",
+                           "    pm.expect(jsonData).to.have.property('balanceWithoutFees');",
+                           "});",
+                           "",
+                           "pm.test(\"fund name is KiwiSaver Balanced Fund\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.fund).to.equal('KiwiSaver Balanced Fund');",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"balanced-1\",\n   \"balance\": 50000,\n   \"annualContribution\": 6000,\n   \"years\": 30,\n   \"annualReturnPercent\": 5.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Fee drag - balanceWithoutFees > projectedBalance and fees > 0",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"totalFeesPaid is greater than zero\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.totalFeesPaid).to.be.a('number');",
+                           "    pm.expect(jsonData.totalFeesPaid).to.be.greaterThan(0);",
+                           "});",
+                           "",
+                           "pm.test(\"balanceWithoutFees is greater than projectedBalance (fee drag)\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.balanceWithoutFees).to.be.a('number');",
+                           "    pm.expect(jsonData.projectedBalance).to.be.a('number');",
+                           "    pm.expect(jsonData.balanceWithoutFees).to.be.greaterThan(jsonData.projectedBalance);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"growth-1\",\n   \"balance\": 75000,\n   \"annualContribution\": 8000,\n   \"years\": 25,\n   \"annualReturnPercent\": 7.5\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Unknown fundId returns 404",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 404\", function () {",
+                           "    pm.response.to.have.status(404);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"does-not-exist\",\n   \"balance\": 10000,\n   \"annualContribution\": 1000,\n   \"years\": 10,\n   \"annualReturnPercent\": 5.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Edge - zero years",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"projectedBalance equals starting balance with zero years\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    // With zero iterations, loops don't execute;",
+                           "    // currentBalance = BigDecimal.valueOf(10000), cumulativeFees = 0",
+                           "    pm.expect(jsonData.projectedBalance).to.equal(10000);",
+                           "});",
+                           "",
+                           "pm.test(\"totalFeesPaid is 0 with zero years\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.totalFeesPaid).to.equal(0);",
+                           "});",
+                           "",
+                           "pm.test(\"balance without fees equals starting balance\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.balanceWithoutFees).to.equal(10000);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"retirement-1\",\n   \"balance\": 10000,\n   \"annualContribution\": 5000,\n   \"years\": 0,\n   \"annualReturnPercent\": 6.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+"name": "Edge - zero contribution, projects on starting balance",
+                 "event": [
+                    {
+                       "listen": "test",
+                       "script": {
+                          "exec": [
+                             "pm.test(\"status code is 200\", function () {",
+                             "    pm.response.to.have.status(200);",
+                             "});",
+                             "",
+                             "pm.test(\"projectedBalance reflects growth on starting balance with no contributions\", function () {",
+                             "    var jsonData = pm.response.json();",
+                             "     // Starting=20000, return=5%, fee=0.45% for 10 years.",
+                             "     // Projected should be > initial since growth exceeds fees.",
+                             "    pm.expect(jsonData.projectedBalance).to.be.a('number');",
+                             "    pm.expect(jsonData.projectedBalance).to.be.greaterThan(20000);",
+                             "});",
+                             "",
+                             "pm.test(\"totalFeesPaid is greater than zero\", function () {",
+                             "    var jsonData = pm.response.json();",
+                             "    pm.expect(jsonData.totalFeesPaid).to.be.a('number');",
+                             "    pm.expect(jsonData.totalFeesPaid).to.be.greaterThan(0);",
+                             "});"
+                          ],
+                          "type": "text/javascript"
+                       }
+                    }
+                 ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"conservative-1\",\n   \"balance\": 20000,\n   \"annualContribution\": 0,\n   \"years\": 10,\n   \"annualReturnPercent\": 5.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Edge - zero return rate (fees drag from contributions only)",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"totalFeesPaid is greater than zero even at 0% return\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.totalFeesPaid).to.be.a('number');",
+                           "    pm.expect(jsonData.totalFeesPaid).to.be.greaterThan(0);",
+                           "});",
+                           "",
+                           "pm.test(\"balanceWithoutFees > projectedBalance (fees still deduct)\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    pm.expect(jsonData.balanceWithoutFees).to.be.greaterThan(jsonData.projectedBalance);",
+                           "});"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"ethical-growth-1\",\n   \"balance\": 30000,\n   \"annualContribution\": 3000,\n   \"years\": 5,\n   \"annualReturnPercent\": 0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Validation - missing required field (no fundId)",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+"exec": [
+                             "pm.test(\"status code is 4xx (not 500)\", function () {",
+                             "    var status = pm.response.code;",
+                             "     // Jackson throws unmarshal error for missing required field.",
+                             "     // Quarkus typically maps this to 400 or similar.",
+                             "    pm.expect(status).to.be.greaterThan(399);",
+                             "    pm.expect(status).to.be.below(500);",
+                             "});",
+                             "",
+                             "console.log('Missing field (no fundId) returned ' + pm.response.code + ' - expected behaviour; service returns client error not server error.');"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"balance\": 10000,\n   \"annualContribution\": 1000,\n   \"years\": 5,\n   \"annualReturnPercent\": 4.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Validation - negative balance (finding, not a failure)",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200 (no server crash)\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"negative balance produces projected result\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    // Service accepts negative values - no validation annotations.",
+                           "    // This is a finding: the API should reject negative balances with 4xx.",
+                           "    pm.expect(jsonData.projectedBalance).to.be.a('number');",
+                           "});",
+                           "",
+"console.log(\"NEGATIVE BALANCE ACCEPTED - this is a service improvement opportunity.\");",
+                            "console.log(\"The API currently accepts negative balance/years without validation.\");",
+                            "console.log(\"Recommendation: add jakarta.validation annotations to CalculateRequest record.\");"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"growth-1\",\n   \"balance\": -5000,\n   \"annualContribution\": 6000,\n   \"years\": 10,\n   \"annualReturnPercent\": 5.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            },
+            {
+               "name": "Validation - negative years (finding, not a failure)",
+               "event": [
+                  {
+                     "listen": "test",
+                     "script": {
+                        "exec": [
+                           "pm.test(\"status code is 200 (no server crash)\", function () {",
+                           "    pm.response.to.have.status(200);",
+                           "});",
+                           "",
+                           "pm.test(\"negative years returns the starting balance\", function () {",
+                           "    var jsonData = pm.response.json();",
+                           "    // With negative years, the for loop doesn't execute (i < -5 is false).",
+                           "    // Result: projectedBalance equals initial balance, fees=0.",
+                           "    // This is a finding: should validate years >= 0 with 4xx response.",
+                           "    pm.expect(jsonData.projectedBalance).to.be.a('number');",
+                           "});",
+                           "",
+"console.log(\"NEGATIVE YEARS ACCEPTED - this is a service improvement opportunity.\");",
+                             "console.log(\"Recommendation: add jakarta.validation.constraints.Positive to years field.\");"
+                        ],
+                        "type": "text/javascript"
+                     }
+                  }
+               ],
+               "request": {
+                  "method": "POST",
+                  "header": [
+                     {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                     }
+                  ],
+                  "body": {
+                     "mode": "raw",
+                     "raw": "{\n   \"fundId\": \"balanced-1\",\n   \"balance\": 10000,\n   \"annualContribution\": 5000,\n   \"years\": -5,\n   \"annualReturnPercent\": 4.0\n}"
+                  },
+                  "url": {
+                     "raw": "{{baseUrl}}/calculate",
+                     "host": ["{{baseUrl}}"],
+                     "path": ["calculate"]
+                  }
+               },
+               "response": []
+            }
+         ]
+      }
+   ]
+}

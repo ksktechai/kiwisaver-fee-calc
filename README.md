@@ -66,3 +66,24 @@ Run all tests with:
 This includes:
 - Integration tests (REST endpoints via REST-assured)
 - Unit test for the fee calculator service with hand-checkable expected values
+
+## API Testing
+
+A Postman collection is provided at `postman/kiwisaver-fee-calc.postman_collection.json` covering all three endpoints with happy-path, edge-case, and validation scenarios. It uses a `{{baseUrl}}` variable (default: `http://localhost:8081`) so the same collection works locally and in CI.
+
+### Run in Postman
+
+1. Import the `.postman_collection.json` file via Postman's **Import** button.
+2. Start the service (`./mvnw quarkus:dev`).
+3. Run the **KiwiSaver Fee Impact Calculator** collection against the configured `baseUrl`.
+
+### Run headlessly with Newman
+
+```bash
+npm install -g newman
+newman run postman/kiwisaver-fee-calc.postman_collection.json \
+    --environment '{"variables": [{"key": "baseUrl", "value": "http://localhost:8081"}]}' \
+    --reporters cli,json
+```
+
+See `postman/README.md` for full instructions.
